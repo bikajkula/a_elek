@@ -1,0 +1,93 @@
+KLASA SERIAL
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+}
+
+Citanje jednog karaktera sa ulaza
+char karakter;
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  while(!Serial.available());
+  delay(20);
+  karakter = Serial.read();
+
+  Serial.print("Primljen karakter: ");
+  Serial.println(karakter);
+
+  delay(500);
+}
+Citanje celog stringa sa ulaza
+char string[64];
+int duzina;
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  while(!Serial.available());
+  delay(20);
+  duzina = Serial.available();
+  Serial.readBytes(string, duzina);
+  string[duzina] = 0;
+
+  Serial.print("Primljen string: ");
+  Serial.println(string);
+
+  delay(500);
+}
+konverzija stringa u broj: broj = atoi(string);
+
+
+
+char karakteri[62] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'y', 'v', 'w', 'x', 'y', 'z'};
+
+LCD
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+int kon = 0;
+
+String ocitajTaster(){
+  String x;
+  int ulaz = analogRead(0);
+  if(ulaz < 75) x = "RIGHT";
+  else if(ulaz < 200) x = "UP";
+  else if(ulaz < 400) x = "DOWN";
+  else if(ulaz < 600) x = "LEFT";
+  else if(ulaz < 1000) x = "SELECT";
+  else x = "NISTA";
+  return x;
+}
+
+void setup() {
+  // put your setup code here, to run once:
+  lcd.begin(16, 2);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  if(ocitajTaster() == "SELECT" && kon == 0) { 
+    lcd.clear(); 
+    lcd.print("Pritisnut SEL"); 
+    kon = 1;
+  }else if(ocitajTaster() == "RIGHT" && kon == 0) { 
+    lcd.clear(); 
+    lcd.print("Pritisnut RIGHT");
+    kon = 1;
+ }else if(ocitajTaster() == "LEFT" && kon == 0) { 
+    lcd.clear(); 
+    lcd.print("Pritisnut LEFT"); 
+    kon = 1;
+  }else if(ocitajTaster() == "UP" && kon == 0) { 
+    lcd.clear(); 
+    lcd.print("Pritisnut UP"); 
+    kon = 1;
+  }else if(ocitajTaster() == "DOWN" && kon == 0) { 
+    lcd.clear(); 
+    lcd.print("Pritisnut DOWN"); 
+    kon = 1;
+  }else if(ocitajTaster() == "NISTA") {
+    lcd.clear();
+    kon = 0;
+  }
+}
