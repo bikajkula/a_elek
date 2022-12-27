@@ -1,0 +1,45 @@
+#include <avr/io.h>
+#include <util/delay.h>
+
+const unsigned char cifre[] = {
+	0x05, 0xdd, 0x46, 0x54, 0x9c, 0x34, 0x24, 0x5d, 0x04, 0x14
+};
+
+const unsigned char crte[] = {
+	0xf7, 0xf7, 0xf7, 0xf7
+};
+
+int main(void)
+{
+  unsigned char displej;
+  DDRD = 0xff;
+  DDRB = 0x0f;
+  int brojac = 0, jedinice, desetice, stotine, hiljade;
+  int i;
+  
+  while(1)
+  { 
+    if(brojac < 10){
+      PORTB = 0xfe;
+      PORTD = cifre[brojac];
+      _delay_ms(200);
+    }
+    if(brojac > 9 && brojac < 100){
+      for (displej = 1; displej <= 2; displej++)
+       {
+         PORTB = ~(0x01 << (2-displej));
+         if(PORTB == 0xfd)
+         	PORTD = cifre[brojac%100/10];
+         if(PORTB == 0xfe)
+           	PORTD = cifre[brojac%10];
+         _delay_ms(200);
+       }
+      
+    }
+    
+    brojac++;
+    _delay_ms(800);
+  }
+
+  return 0;
+}

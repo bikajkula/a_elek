@@ -1,0 +1,40 @@
+#include <avr/io.h>
+#include <util/delay.h>
+
+int main(void)
+{
+  unsigned char tasteri;
+  DDRD = 0xff;
+  DDRC = 0x00;
+  DDRB = 0x1f;
+  PORTB &= ~(1 << 4);
+  PORTD = 0xfe;
+  int brojac = 0;
+  
+  while(1)
+  {
+  	tasteri = PINC & 0x0f;
+    
+    if(!(tasteri & 0x01))
+    {
+      brojac++;
+      if(brojac == 8)
+        brojac = 0;
+      PORTD = 0xff;
+      PORTD &= ~(0x01 << brojac);
+      _delay_ms(200);
+    }
+    
+    if(!(tasteri & 0x04))
+    {
+      brojac--;
+      if(brojac == -1)
+        brojac = 7;
+      PORTD = 0xff;
+      PORTD &= ~(0x01 << brojac);
+      _delay_ms(200);
+    }
+  }
+  
+  return 0;
+}

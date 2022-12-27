@@ -1,0 +1,170 @@
+#include <avr/io.h>
+#include <avr/interrupt.h>
+const unsigned char simboli[] = {
+ 0x0c, 0xa4, 0x27, 0xc4
+};
+
+const unsigned char cifre[] = {
+ 0x05 ,0xdd, 0x46, 0x54, 0x9c, 0x34, 0x24, 0x5d, 0x04, 0x14
+};
+
+unsigned char DISP_BAFER[4] = {
+ 0xfe, 0xfe, 0xfe, 0xfe
+};
+
+const unsigned char cifre_sa_tackom[] = {
+ 0x01 ,0xd9, 0x42, 0x50, 0x98, 0x30, 0x20, 0x59, 0x00, 0x10
+};
+
+volatile unsigned long mil = 0;
+volatile unsigned char disp = 3;
+volatile int brojac = 0;
+volatile int provera = 0;
+volatile int minute = 0;
+volatile int sekunde = 0;
+volatile int znak = 0;
+
+ISR(TIMER0_COMPA_vect)
+{
+  if(znak == 0){
+ //prekid tajmera 0 usled dostizanja vrednosti registra OCR0A
+ if (++disp > 3)
+ disp = 0;
+ PORTB = ~(1 << (3-disp)); //ukljucenje tranzistora
+ PORTD = DISP_BAFER[disp]; //ispis na trenutno aktivan displej
+  }
+  if(znak == 1){
+    if (++disp > 3)
+ 	disp = 0;
+ 	PORTB = ~(1 << (3-disp)); //ukljucenje tranzistora
+ 	PORTD = DISP_BAFER[disp]; //ispis na trenutno aktivan displej
+  	PORTB &= ~(1 << 4);
+    PORTD = 0xff; //ukljucuju se LED na pozicijama 6, 4, 2 i 0
+ 	_delay_ms(500);//pauza 1s
+ 	PORTD = 0x00; //ukljucuju se LED na pozicijama 7, 5, 3 i 1
+ 	_delay_ms(500);//pauza 1s
+  }
+ mil++; //sistemsko vreme
+}
+
+ISR(PCINT1_vect)
+{
+ //prekid usled promene stanja pina PCINT10 ili pina PCINT8
+ switch ((~PINC) & 0x0f)
+ {
+   case 0x01: //pritisnut levi taster
+     provera = 0;
+   	 znak = 0;
+     break;
+   
+   case 0x02: //pritisnut donji taster
+     brojac--;
+     break;
+   
+   case 0x04: //pritisnut desni taster
+     provera++;
+   	 if(provera == 1)
+       minute = brojac;
+   	 if(provera == 2)
+       sekunde = brojac;
+   	 if(provera == 4)
+       provera = 2;
+   	 brojac = 0;
+     break;
+   
+   case 0x08: //pritisnut gornji taster
+     brojac++;
+     break;
+ }
+}
+
+int main()
+{
+ unsigned long t0;
+ unsigned char i;
+
+ //inicijalizacija portova:
+ DDRB = 0x1f; //PB3-PB0 -> izlazi
+ DDRD = 0xff; //port D -> izlaz
+
+ //inicijalizacija tajmera 0:
+ TCCR0A = 0x02; //tajmer 0: CTC mod
+ TCCR0B = 0x03; //tajmer 0: fclk = fosc/64
+ OCR0A = 249; //perioda tajmera 0: 250 Tclk (OCR0A + 1 = 250)
+ TIMSK0 = 0x02; //dozvola prekida tajmera 0
+ //usled dostizanja vrednosti registra OCR0A
+ PCICR = (1 << PCIE1); //dozvola prekida usled promene stanja
+ PCMSK1 = 0x0f; //pina PCINT10, ili pina PCINT8
+
+ sei(); //I = 1 (dozvola prekida)
+
+ while(1)
+ {
+   t0 = mil;
+   while ((mil - t0) < 50);
+   
+   for (i = 0; i < 4; i++)
+ 	DISP_BAFER[i] = 0xff;
+   
+   int jedinice = brojac%10;
+   int desetice = brojac%100/10;
+   
+   //int jedinice_sekunde = brojac%10;
+   //int desetice_sekunde = brojac%100/10;
+   
+   if(provera == 0){
+   	 
+     DISP_BAFER[1] = cifre[jedinice];
+     
+     if(brojac > 9){
+     	DISP_BAFER[0] = cifre[desetice];
+     }
+     
+     if(brojac > 59)
+       brojac = 0;
+     if(brojac < 0)
+       brojac = 59;
+   }
+   
+   if(provera == 1){
+     DISP_BAFER[1] = cifre_sa_tackom[minute%10];
+     DISP_BAFER[0] = cifre[minute%100/10];
+     
+     DISP_BAFER[3] = cifre[jedinice];
+     
+     if(brojac > 9){
+     	DISP_BAFER[2] = cifre[desetice];
+     }
+     
+     if(brojac > 59)
+       brojac = 0;
+     if(brojac < 0)
+       brojac = 59;
+   }
+   
+   if(provera == 2){
+     DISP_BAFER[1] = cifre_sa_tackom[minute%10];
+     DISP_BAFER[0] = cifre[minute%100/10];
+     DISP_BAFER[3] = cifre[sekunde%10];
+     DISP_BAFER[2] = cifre[sekunde%100/10];
+     if(sekunde == 0){
+       sekunde = 59;
+       minute--;
+     }
+     sekunde--;
+     
+     if(minute == 0 && sekunde == 0)
+       znak = 1;
+   }
+   
+   if(provera == 3){
+     DISP_BAFER[1] = cifre_sa_tackom[minute%10];
+     DISP_BAFER[0] = cifre[minute%100/10];
+     DISP_BAFER[3] = cifre[sekunde%10];
+     DISP_BAFER[2] = cifre[sekunde%100/10];
+   }
+   
+ }
+  
+ return 0;
+}
